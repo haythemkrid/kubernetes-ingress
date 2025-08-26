@@ -172,16 +172,16 @@ func TestHelmNICTemplateNegative(t *testing.T) {
 	t.Parallel()
 
 	negativeTests := map[string]struct {
-		valuesFile       string
-		releaseName      string
-		namespace        string
-		expectedErrorMsg string
+		valuesFile        string
+		releaseName       string
+		namespace         string
+		expectedErrorMsgs []string
 	}{
 		"startupStatusInvalid": {
-			valuesFile:       "testdata/startupstatus-invalid.yaml",
-			releaseName:      "startupstatus-invalid",
-			namespace:        "default",
-			expectedErrorMsg: "port is required",
+			valuesFile:        "testdata/startupstatus-invalid.yaml",
+			releaseName:       "startupstatus-invalid",
+			namespace:         "default",
+			expectedErrorMsgs: []string{"missing properties 'port', 'path'", "port is required"},
 		},
 		"globalConfigInvalidFormat": {
 			valuesFile:       "testdata/global-config-invalid-format.yaml",
@@ -224,11 +224,17 @@ func TestHelmNICTemplateNegative(t *testing.T) {
 				t.Fatalf("Expected helm template to fail for invalid configuration, but it succeeded")
 			}
 
-			if tc.expectedErrorMsg != "" && !strings.Contains(err.Error(), tc.expectedErrorMsg) {
-				t.Fatalf("Expected error to contain '%s', but got: %s", tc.expectedErrorMsg, err.Error())
+			errMsg := err.Error()
+			for _, expected := range tc.expectedErrorMsgs {
+				if strings.Contains(errMsg, expected) {
+					t.Logf("Expected failure occurred: %s", errMsg)
+					return
+				}
 			}
 
-			t.Logf("Expected failure occurred: %s", err.Error())
+			t.Fatalf("Expected error to contain '%s', but got: %s", tc.expectedErrorMsgs[0], errMsg)
+
+			t.Logf("Expected failure occurred: %s", errMsg)
 		})
 	}
 }
